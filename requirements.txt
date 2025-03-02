@@ -1,0 +1,5 @@
+gymnasium[atari,accept-rom-license, classic-control, other]==0.29.1
+ale-py
+AutoROM
+torch
+numpy
