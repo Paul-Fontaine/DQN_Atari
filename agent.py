@@ -23,7 +23,7 @@ class AgentDoubleDQN:
         with torch.no_grad():
             return self.dqn(preprocess_for_dqn(state)).argmax().item()
 
-    def train(self, episodes: int = 10000, gamma: float = 0.99, learning_rate: float = 1e-4, batch_size: int = 32, epsilon_start: float = 1.0, epsilon_end: float = 0.1, epsilon_decay: int = 100000, target_update: int = 1000):
+    def train(self, episodes: int = 10000, gamma: float = 0.99, learning_rate: float = 1e-4, batch_size: int = 32, epsilon_start: float = 1.0, epsilon_end: float = 0.1, epsilon_decay: int = 100000, target_update: int = 1000, watch_during_training: bool = False):
         optimizer = Adam(self.dqn.parameters(), lr=learning_rate)
         epsilon = epsilon_start
         steps_done = 0
@@ -70,13 +70,8 @@ class AgentDoubleDQN:
 
             if episode % 100 == 0:
                 self.save()
-                # render the environment
-                state, _ = self.human_env.reset()
-                done = False
-                while not done:
-                    action = self.act(state)
-                    state, _, done, _, _ = self.human_env.step(action)
-                self.human_env.close()
+                if watch_during_training:
+                    self.watch()
 
         self.env.close()
 
