@@ -45,6 +45,8 @@ class AgentDoubleDQN:
                 state = next_state
                 total_reward += reward
 
+                if len(self.memory) == batch_size:
+                    print("Memory filled, start training")
                 if len(self.memory) >= batch_size:
                     batch = sample(self.memory, batch_size)
                     state_batch, action_batch, reward_batch, next_state_batch, done_batch = zip(*batch)
