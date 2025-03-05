@@ -23,7 +23,7 @@ class AgentDoubleDQN:
         with torch.no_grad():
             return self.dqn(preprocess_for_dqn(state)).argmax().item()
 
-    def train(self, episodes: int = 10000, gamma: float = 0.99, learning_rate: float = 1e-4, batch_size: int = 32, epsilon_start: float = 1.0, epsilon_end: float = 0.1, epsilon_decay: int = 100000, target_update: int = 1000, watch_during_training: bool = False):
+    def train(self, episodes: int = 10000, gamma: float = 0.99, learning_rate: float = 1e-4, batch_size: int = 32, epsilon_start: float = 1.0, epsilon_end: float = 0.1, epsilon_decay: int = 100000, target_update: int = 1000, chekpoint_frequency: int = 100, rendering_frequency: int = 0):
         optimizer = Adam(self.dqn.parameters(), lr=learning_rate)
         epsilon = epsilon_start
         steps_done = 0
@@ -68,10 +68,11 @@ class AgentDoubleDQN:
 
             print(f"Episode {episode}, Total Reward: {total_reward}")
 
-            if episode % 100 == 0:
+            if episode % chekpoint_frequency == 0:
                 self.save()
-                if watch_during_training:
-                    self.watch()
+
+            if rendering_frequency and episode % rendering_frequency == 0:
+                self.watch()
 
         self.env.close()
 
