@@ -1,3 +1,5 @@
 .idea/
+.venv/
 __pycache__
 /agent_checkpoint.pth
+/agent_checkpoint_sans_fire.pth
