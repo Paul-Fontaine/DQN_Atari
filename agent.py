@@ -52,7 +52,7 @@ class AgentDoubleDQN:
                     action = self.env.action_space.sample()
                 else:
                     action = self.act(state)
-                next_state, reward, done, _, _ = self.env.step(action)
+                next_state, reward, done, _, info = self.env.step(action)
                 self.memory.append((state, action, reward, next_state, done))
                 state = next_state
                 total_reward += reward
@@ -88,7 +88,9 @@ class AgentDoubleDQN:
 
                 avg_speed = (time.time() - start_time) / (episode + 1)
                 time_left = (episodes - episode - 1) * avg_speed
-                print(f"Average Speed: {avg_speed:.2f} s/episode, Time Left: {time_left:.2f} s")
+                # convert time left from sec to hours minutes and seconds
+                h, m, s = time_left // 3600, (time_left % 3600) // 60, time_left % 60
+                print(f"Average Speed: {avg_speed:.2f} s/episode, Time Left: {int(h)}h {int(m)}m {int(s)}s")
 
             if rendering_frequency and episode % rendering_frequency == 0:
                 self.watch()
@@ -119,7 +121,7 @@ class AgentDoubleDQN:
                     previous_nb_lives = info["lives"]
                 else:
                     action = self.act(state)
-                next_state, reward, done, _, _ = self.env.step(action)
+                next_state, reward, done, _, info = self.env.step(action)
                 state = next_state
                 total_reward += reward
 
@@ -141,7 +143,7 @@ class AgentDoubleDQN:
                 previous_nb_lives = info["lives"]
             else:
                 action = self.act(state)
-            state, _, done, _, _ = self.human_env.step(action)
+            state, _, done, _, info = self.human_env.step(action)
 
         self.human_env.close()
 
