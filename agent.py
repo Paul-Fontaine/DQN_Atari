@@ -1,6 +1,8 @@
 from typing import Tuple
 from collections import deque
+import time
 import numpy as np
+import matplotlib.pyplot as plt
 import torch
 from torch.optim import Adam
 from torch.nn import MSELoss
@@ -24,9 +26,11 @@ class AgentDoubleDQN:
             return self.dqn(preprocess_for_dqn(state)).argmax().item()
 
     def train(self, episodes: int = 10000, gamma: float = 0.99, learning_rate: float = 1e-4, batch_size: int = 32, epsilon_start: float = 1.0, epsilon_end: float = 0.1, epsilon_decay: int = 100000, target_update: int = 1000, chekpoint_frequency: int = 100, rendering_frequency: int = 0):
+        start_time = time.time()
         optimizer = Adam(self.dqn.parameters(), lr=learning_rate)
         epsilon = epsilon_start
         steps_done = 0
+        rewards = []
 
         for episode in range(episodes):
             state, info = self.env.reset()
@@ -48,7 +52,7 @@ class AgentDoubleDQN:
                     action = self.env.action_space.sample()
                 else:
                     action = self.act(state)
-                next_state, reward, done, _, _ = self.env.step(action)
+                next_state, reward, done, _, info = self.env.step(action)
                 self.memory.append((state, action, reward, next_state, done))
                 state = next_state
                 total_reward += reward
@@ -80,11 +84,27 @@ class AgentDoubleDQN:
 
             if episode % chekpoint_frequency == 0:
                 self.save()
+                rewards.append(total_reward)
+
+                avg_speed = (time.time() - start_time) / (episode + 1)
+                time_left = (episodes - episode - 1) * avg_speed
+                # convert time left from sec to hours minutes and seconds
+                h, m, s = time_left // 3600, (time_left % 3600) // 60, time_left % 60
+                print(f"Average Speed: {avg_speed:.2f} s/episode, Time Left: {int(h)}h {int(m)}m {int(s)}s")
 
             if rendering_frequency and episode % rendering_frequency == 0:
                 self.watch()
 
         self.env.close()
+
+        # plot rewards
+        plt.figure(figsize=(10, 5))
+        plt.plot(rewards)
+        plt.xlabel("Episode")
+        plt.ylabel("Total Reward")
+        # set x ticks to display 10 values
+        plt.xticks(np.arange(0, episodes, episodes // 10))
+        plt.show()
 
     def evaluate(self, episodes: int = 10):
         total_rewards = []
@@ -101,7 +121,7 @@ class AgentDoubleDQN:
                     previous_nb_lives = info["lives"]
                 else:
                     action = self.act(state)
-                next_state, reward, done, _, _ = self.env.step(action)
+                next_state, reward, done, _, info = self.env.step(action)
                 state = next_state
                 total_reward += reward
 
@@ -123,7 +143,7 @@ class AgentDoubleDQN:
                 previous_nb_lives = info["lives"]
             else:
                 action = self.act(state)
-            state, _, done, _, _ = self.human_env.step(action)
+            state, _, done, _, info = self.human_env.step(action)
 
         self.human_env.close()
 
