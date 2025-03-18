@@ -33,13 +33,21 @@ class AgentDoubleDQN:
         rewards = []
 
         for episode in range(episodes):
-            state, _ = self.env.reset()
+            state, info = self.env.reset()
+            previous_nb_lives = info["lives"]
+            self.env.step(1)  # fire the ball
             total_reward = 0
             done = False
 
             while not done:
                 steps_done += 1
                 epsilon = max(epsilon_end, epsilon_start - (steps_done / epsilon_decay))
+
+                # if the ball is not in play, fire it
+                if info["lives"] < previous_nb_lives:
+                    action = 1
+                    previous_nb_lives = info["lives"]
+
                 if random() < epsilon:
                     action = self.env.action_space.sample()
                 else:
@@ -71,7 +79,7 @@ class AgentDoubleDQN:
 
                 if steps_done % target_update == 0:
                     self.target_dqn.load_state_dict(self.dqn.state_dict())
-            
+
             print(f"Episode {episode}, Total Reward: {total_reward}")
 
             if episode % chekpoint_frequency == 0:
@@ -99,12 +107,18 @@ class AgentDoubleDQN:
     def evaluate(self, episodes: int = 10):
         total_rewards = []
         for episode in range(episodes):
-            state, _ = self.env.reset()
+            state, info = self.env.reset()
+            previous_nb_lives = info["lives"]
+            self.env.step(1)  # fire the ball
             total_reward = 0
             done = False
 
             while not done:
-                action = self.act(state)
+                if info["lives"] < previous_nb_lives:
+                    action = 1
+                    previous_nb_lives = info["lives"]
+                else:
+                    action = self.act(state)
                 next_state, reward, done, _, _ = self.env.step(action)
                 state = next_state
                 total_reward += reward
@@ -116,11 +130,17 @@ class AgentDoubleDQN:
         self.env.close()
 
     def watch(self):
-        state, _ = self.human_env.reset()
+        state, info = self.human_env.reset()
+        previous_nb_lives = info["lives"]
+        self.human_env.step(1)  # fire the ball
         done = False
 
         while not done:
-            action = self.act(state)
+            if info["lives"] < previous_nb_lives:
+                action = 1
+                previous_nb_lives = info["lives"]
+            else:
+                action = self.act(state)
             state, _, done, _, _ = self.human_env.step(action)
 
         self.human_env.close()
@@ -129,5 +149,5 @@ class AgentDoubleDQN:
         torch.save(self.dqn.state_dict(), path)
 
     def load(self, path: str = "agent_checkpoint.pth"):
-        self.dqn.load_state_dict(torch.load(path))
+        self.dqn.load_state_dict(torch.load(path, map_location=device))
         self.target_dqn.load_state_dict(self.dqn.state_dict())
