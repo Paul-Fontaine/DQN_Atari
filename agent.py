@@ -1,6 +1,8 @@
 from typing import Tuple
 from collections import deque
+import time
 import numpy as np
+import matplotlib.pyplot as plt
 import torch
 from torch.optim import Adam
 from torch.nn import MSELoss
@@ -24,9 +26,11 @@ class AgentDoubleDQN:
             return self.dqn(preprocess_for_dqn(state)).argmax().item()
 
     def train(self, episodes: int = 10000, gamma: float = 0.99, learning_rate: float = 1e-4, batch_size: int = 32, epsilon_start: float = 1.0, epsilon_end: float = 0.1, epsilon_decay: int = 100000, target_update: int = 1000, chekpoint_frequency: int = 100, rendering_frequency: int = 0):
+        start_time = time.time()
         optimizer = Adam(self.dqn.parameters(), lr=learning_rate)
         epsilon = epsilon_start
         steps_done = 0
+        rewards = []
 
         for episode in range(episodes):
             state, _ = self.env.reset()
@@ -67,16 +71,30 @@ class AgentDoubleDQN:
 
                 if steps_done % target_update == 0:
                     self.target_dqn.load_state_dict(self.dqn.state_dict())
-
+            
             print(f"Episode {episode}, Total Reward: {total_reward}")
 
             if episode % chekpoint_frequency == 0:
                 self.save()
+                rewards.append(total_reward)
+
+                avg_speed = (time.time() - start_time) / (episode + 1)
+                time_left = (episodes - episode - 1) * avg_speed
+                print(f"Average Speed: {avg_speed:.2f} s/episode, Time Left: {time_left:.2f} s")
 
             if rendering_frequency and episode % rendering_frequency == 0:
                 self.watch()
 
         self.env.close()
+
+        # plot rewards
+        plt.figure(figsize=(10, 5))
+        plt.plot(rewards)
+        plt.xlabel("Episode")
+        plt.ylabel("Total Reward")
+        # set x ticks to display 10 values
+        plt.xticks(np.arange(0, episodes, episodes // 10))
+        plt.show()
 
     def evaluate(self, episodes: int = 10):
         total_rewards = []
